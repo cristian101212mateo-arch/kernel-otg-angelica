@@ -39,6 +39,14 @@ jobs:
           echo "=== Últimas líneas de angelica.dts ==="
           tail -5 arch/arm64/boot/dts/mediatek/angelica.dts
 
+      - name: Fix disp_lcm.c extern declaration
+        run: |
+          cd kernel
+          F=drivers/misc/mediatek/video/mt6765/videox/disp_lcm.c
+          sed -i "s/^extern tpd_gesture_flag;/extern int tpd_gesture_flag;/" $F
+          sed -i "s/^[[:space:]]*extern tpd_gesture_flag;/extern int tpd_gesture_flag;/" $F
+          grep -n tpd_gesture_flag $F | head -3
+
       - name: Force -Wno-error globally
         run: |
           cd kernel
