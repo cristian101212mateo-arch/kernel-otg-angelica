@@ -18,6 +18,13 @@ jobs:
       - name: Clone kernel source
         run: git clone --depth=1 --branch halium-10.0 https://github.com/droidian-mt6765/kernel-xiaomi-mt6765.git kernel
 
+      - name: Add usb0 label to base DTS
+        run: |
+          cd kernel
+          sed -i 's/^\(\s*\)usb0@11200000 {/\1usb0: usb0@11200000 {/' arch/arm64/boot/dts/mediatek/mt6765.dts
+          echo "=== Verificación ==="
+          grep -n "usb0@11200000" arch/arm64/boot/dts/mediatek/mt6765.dts
+
       - name: Apply OTG overlay
         run: |
           cd kernel
@@ -41,6 +48,7 @@ jobs:
           cp out/arch/arm64/boot/Image.gz-dtb output/ 2>/dev/null || true
           cp out/arch/arm64/boot/Image.gz output/ 2>/dev/null || true
           cp out/arch/arm64/boot/dts/mediatek/angelica.dtb output/ 2>/dev/null || true
+          cp out/arch/arm64/boot/dts/mediatek/mt6765.dtb output/ 2>/dev/null || true
           cd output && zip -r ../kernel-otg-angelica.zip . && cd ..
 
       - name: Upload
