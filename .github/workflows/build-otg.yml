@@ -39,17 +39,20 @@ jobs:
           echo "=== Últimas líneas de angelica.dts ==="
           tail -5 arch/arm64/boot/dts/mediatek/angelica.dts
 
-      - name: Patch driver Makefile to disable -Werror
+      - name: Disable -Werror globally
         run: |
           cd kernel
-          echo "=== Antes ==="
-          cat drivers/input/fingerprint/fpc/Makefile 2>/dev/null | head -10
-          # Añadir -Wno-error al Makefile del driver de huella
-          echo 'ccflags-y += -Wno-error -Wno-duplicate-decl-specifier -Wno-maybe-uninitialized' >> drivers/input/fingerprint/fpc/Makefile
-          # Y al Makefile de fingerprint general
-          echo 'ccflags-y += -Wno-error' >> drivers/input/fingerprint/Makefile 2>/dev/null || true
-          echo "=== Después ==="
-          cat drivers/input/fingerprint/fpc/Makefile 2>/dev/null | tail -5
+          echo "=== Antes: líneas con -Werror en Makefile principal ==="
+          grep -n "Werror" Makefile | head -10
+          # Neutralizar -Werror en el Makefile principal del kernel
+          sed -i 's/-Werror/-Wno-error/g' Makefile
+          # Por si está en scripts/Makefile.*
+          find scripts -name "Makefile*" -exec sed -i 's/-Werror/-Wno-error/g' {} \; 2>/dev/null || true
+          # Y deshabilitar CONFIG_WERROR en el defconfig si existe
+          grep -q "CONFIG_WERROR" arch/arm64/configs/angelica_halium_defconfig && \
+            sed -i 's/CONFIG_WERROR=y/# CONFIG_WERROR is not set/' arch/arm64/configs/angelica_halium_defconfig || true
+          echo "=== Después: verificar ==="
+          grep -n "Werror" Makefile | head -10 || echo "Sin -Werror en Makefile"
 
       - name: Build kernel
         run: |
