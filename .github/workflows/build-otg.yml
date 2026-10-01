@@ -39,25 +39,20 @@ jobs:
           echo "=== Últimas líneas de angelica.dts ==="
           tail -5 arch/arm64/boot/dts/mediatek/angelica.dts
 
-      - name: Patch problem drivers only
+      - name: Patch drivers to disable -Werror
         run: |
           cd kernel
-          # Lista de drivers que fallan con GCC 9 -Werror
-          for dir in \
-            drivers/input/fingerprint/fpc \
-            drivers/input/keyboard/mediatek \
-            drivers/input/touchscreen/mediatek \
-            drivers/input/misc \
-            drivers/misc/mediatek; do
-            if [ -f "$dir/Makefile" ]; then
-              echo '' >> "$dir/Makefile"
-              echo 'ccflags-y += -Wno-error -Wno-error=format -Wno-error=maybe-uninitialized -Wno-error=duplicate-decl-specifier' >> "$dir/Makefile"
-              echo "✅ Parcheado: $dir/Makefile"
+          # subdir-ccflags-y se propaga a TODOS los subdirectorios recursivamente
+          # sin afectar al Makefile principal del kernel (no rompe cc-option checks)
+          for mk in drivers/Makefile sound/Makefile net/Makefile fs/Makefile; do
+            if [ -f "$mk" ]; then
+              echo '' >> "$mk"
+              echo 'subdir-ccflags-y += -Wno-error -Wno-error=array-bounds -Wno-error=format -Wno-error=maybe-uninitialized -Wno-error=duplicate-decl-specifier' >> "$mk"
+              echo "✅ Parcheado: $mk"
             fi
           done
-          # Verificación
-          echo "=== Últimas líneas del Makefile del kpd ==="
-          tail -5 drivers/input/keyboard/mediatek/Makefile 2>/dev/null || echo "No existe kpd Makefile"
+          echo "=== Verificación drivers/Makefile ==="
+          tail -3 drivers/Makefile
       - name: Build kernel
         run: |
           cd kernel
