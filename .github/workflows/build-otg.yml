@@ -42,17 +42,41 @@ jobs:
       - name: Patch drivers to disable -Werror
         run: |
           cd kernel
-          # subdir-ccflags-y se propaga a TODOS los subdirectorios recursivamente
-          # sin afectar al Makefile principal del kernel (no rompe cc-option checks)
-          for mk in drivers/Makefile sound/Makefile net/Makefile fs/Makefile; do
+          FLAGS="-Wno-error -Wno-error=array-bounds -Wno-error=format -Wno-error=maybe-uninitialized -Wno-error=uninitialized -Wno-error=duplicate-decl-specifier -Wno-error=stringop-overflow -Wno-error=restrict"
+
+          # 1) subdir-ccflags-y en los Makefiles raíz (propaga recursivamente)
+          for mk in drivers/Makefile sound/Makefile net/Makefile fs/Makefile lib/Makefile mm/Makefile; do
             if [ -f "$mk" ]; then
               echo '' >> "$mk"
-              echo 'subdir-ccflags-y += -Wno-error -Wno-error=array-bounds -Wno-error=format -Wno-error=maybe-uninitialized -Wno-error=duplicate-decl-specifier' >> "$mk"
-              echo "✅ Parcheado: $mk"
+              echo "subdir-ccflags-y += $FLAGS" >> "$mk"
+              echo "✅ subdir-ccflags-y en $mk"
             fi
           done
-          echo "=== Verificación drivers/Makefile ==="
+
+          # 2) ccflags-y específico en Makefiles problemáticos (por si subdir es sobrescrito)
+          for dir in \
+            drivers/input/touchscreen/mediatek \
+            drivers/input/touchscreen/mediatek/chipone \
+            drivers/input/keyboard/mediatek \
+            drivers/input/fingerprint \
+            drivers/input/fingerprint/fpc \
+            drivers/input/fingerprint/focaltech \
+            drivers/input/fingerprint/goodix \
+            drivers/misc/mediatek \
+            drivers/misc/mediatek/imgsensor \
+            drivers/misc/mediatek/camera; do
+            if [ -f "$dir/Makefile" ]; then
+              echo '' >> "$dir/Makefile"
+              echo "ccflags-y += $FLAGS" >> "$dir/Makefile"
+              echo "✅ ccflags-y en $dir/Makefile"
+            fi
+          done
+
+          # 3) Verificación
+          echo "=== drivers/Makefile (últimas líneas) ==="
           tail -3 drivers/Makefile
+          echo "=== chipone/Makefile (últimas líneas) ==="
+          tail -3 drivers/input/touchscreen/mediatek/chipone/Makefile
       - name: Build kernel
         run: |
           cd kernel
