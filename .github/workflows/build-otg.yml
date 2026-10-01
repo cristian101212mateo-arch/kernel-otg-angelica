@@ -39,21 +39,25 @@ jobs:
           echo "=== Últimas líneas de angelica.dts ==="
           tail -5 arch/arm64/boot/dts/mediatek/angelica.dts
 
-      - name: Disable -Werror globally
+      - name: Patch problem drivers only
         run: |
           cd kernel
-          echo "=== Antes: líneas con -Werror en Makefile principal ==="
-          grep -n "Werror" Makefile | head -10
-          # Neutralizar -Werror en el Makefile principal del kernel
-          sed -i 's/-Werror/-Wno-error/g' Makefile
-          # Por si está en scripts/Makefile.*
-          find scripts -name "Makefile*" -exec sed -i 's/-Werror/-Wno-error/g' {} \; 2>/dev/null || true
-          # Y deshabilitar CONFIG_WERROR en el defconfig si existe
-          grep -q "CONFIG_WERROR" arch/arm64/configs/angelica_halium_defconfig && \
-            sed -i 's/CONFIG_WERROR=y/# CONFIG_WERROR is not set/' arch/arm64/configs/angelica_halium_defconfig || true
-          echo "=== Después: verificar ==="
-          grep -n "Werror" Makefile | head -10 || echo "Sin -Werror en Makefile"
-
+          # Lista de drivers que fallan con GCC 9 -Werror
+          for dir in \
+            drivers/input/fingerprint/fpc \
+            drivers/input/keyboard/mediatek \
+            drivers/input/touchscreen/mediatek \
+            drivers/input/misc \
+            drivers/misc/mediatek; do
+            if [ -f "$dir/Makefile" ]; then
+              echo '' >> "$dir/Makefile"
+              echo 'ccflags-y += -Wno-error -Wno-error=format -Wno-error=maybe-uninitialized -Wno-error=duplicate-decl-specifier' >> "$dir/Makefile"
+              echo "✅ Parcheado: $dir/Makefile"
+            fi
+          done
+          # Verificación
+          echo "=== Últimas líneas del Makefile del kpd ==="
+          tail -5 drivers/input/keyboard/mediatek/Makefile 2>/dev/null || echo "No existe kpd Makefile"
       - name: Build kernel
         run: |
           cd kernel
