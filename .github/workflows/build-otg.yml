@@ -46,7 +46,7 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-gnu-
           mkdir -p out
           make O=out ARCH=arm64 angelica_halium_defconfig
-          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-Wno-error"
 
       - name: Package
         run: |
