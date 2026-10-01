@@ -39,6 +39,18 @@ jobs:
           echo "=== Últimas líneas de angelica.dts ==="
           tail -5 arch/arm64/boot/dts/mediatek/angelica.dts
 
+      - name: Patch driver Makefile to disable -Werror
+        run: |
+          cd kernel
+          echo "=== Antes ==="
+          cat drivers/input/fingerprint/fpc/Makefile 2>/dev/null | head -10
+          # Añadir -Wno-error al Makefile del driver de huella
+          echo 'ccflags-y += -Wno-error -Wno-duplicate-decl-specifier -Wno-maybe-uninitialized' >> drivers/input/fingerprint/fpc/Makefile
+          # Y al Makefile de fingerprint general
+          echo 'ccflags-y += -Wno-error' >> drivers/input/fingerprint/Makefile 2>/dev/null || true
+          echo "=== Después ==="
+          cat drivers/input/fingerprint/fpc/Makefile 2>/dev/null | tail -5
+
       - name: Build kernel
         run: |
           cd kernel
@@ -46,7 +58,8 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-gnu-
           mkdir -p out
           make O=out ARCH=arm64 angelica_halium_defconfig
-          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-Wno-error"
+          export KCFLAGS="-Wno-error -Wno-duplicate-decl-specifier -Wno-maybe-uninitialized"
+          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
 
       - name: Package
         run: |
