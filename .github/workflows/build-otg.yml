@@ -18,18 +18,25 @@ jobs:
       - name: Clone kernel source
         run: git clone --depth=1 --branch halium-10.0 https://github.com/droidian-mt6765/kernel-xiaomi-mt6765.git kernel
 
-      - name: Add usb0 label to base DTS
+      - name: Add usb0 label and DTC flag
         run: |
           cd kernel
+          # 1. Añadir la etiqueta usb0 al nodo del DTS base
           sed -i 's/^\(\s*\)usb0@11200000 {/\1usb0: usb0@11200000 {/' arch/arm64/boot/dts/mediatek/mt6765.dts
-          echo "=== Verificación ==="
+          echo "=== Verificación etiqueta usb0 ==="
           grep -n "usb0@11200000" arch/arm64/boot/dts/mediatek/mt6765.dts
+          
+          # 2. Forzar la generación de símbolos para el DTB de mt6765
+          echo 'DTC_FLAGS_mt6765 := -@' >> arch/arm64/boot/dts/mediatek/Makefile
+          echo "=== Verificación DTC_FLAGS ==="
+          tail -5 arch/arm64/boot/dts/mediatek/Makefile
 
       - name: Apply OTG overlay
         run: |
           cd kernel
           printf '// OTG overlay for angelica\n&usb0 {\n    dr_mode = "otg";\n    status = "okay";\n};\n' > arch/arm64/boot/dts/mediatek/otg-overlay.dtsi
           echo '#include "otg-overlay.dtsi"' >> arch/arm64/boot/dts/mediatek/angelica.dts
+          echo "=== Últimas líneas de angelica.dts ==="
           tail -5 arch/arm64/boot/dts/mediatek/angelica.dts
 
       - name: Build kernel
@@ -39,7 +46,7 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-gnu-
           mkdir -p out
           make O=out ARCH=arm64 angelica_halium_defconfig
-          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- 2>&1 | tail -80
+          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
 
       - name: Package
         run: |
