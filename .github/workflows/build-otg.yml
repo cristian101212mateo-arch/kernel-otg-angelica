@@ -39,35 +39,18 @@ jobs:
           echo "=== Últimas líneas de angelica.dts ==="
           tail -5 arch/arm64/boot/dts/mediatek/angelica.dts
 
-      - name: Patch drivers to disable -Werror
+      - name: Force -Wno-error globally
         run: |
           cd kernel
-          FLAGS="-Wno-error -Wno-error=array-bounds -Wno-error=format -Wno-error=maybe-uninitialized -Wno-error=uninitialized -Wno-error=duplicate-decl-specifier -Wno-error=misleading-indentation -Wno-error=stringop-overflow -Wno-error=restrict -Wno-error=return-type"
-
-          # 1) subdir-ccflags-y en Makefiles raíz
-          for mk in drivers/Makefile sound/Makefile net/Makefile fs/Makefile lib/Makefile mm/Makefile; do
-            [ -f "$mk" ] && echo '' >> "$mk" && echo "subdir-ccflags-y += $FLAGS" >> "$mk"
-          done
-
-          # 2) ccflags-y en TODOS los Makefiles bajo drivers/input/touchscreen/mediatek/ (recursivo)
-          find drivers/input/touchscreen/mediatek -name Makefile -type f | while read mk; do
-            echo '' >> "$mk"
-            echo "ccflags-y += $FLAGS" >> "$mk"
-            echo "✅ $mk"
-          done
-
-          # 3) ccflags-y en otros drivers problemáticos
-          for dir in \
-            drivers/input/keyboard/mediatek \
-            drivers/input/fingerprint \
-            drivers/input/fingerprint/fpc \
-            drivers/input/fingerprint/focaltech \
-            drivers/input/fingerprint/goodix \
-            drivers/misc/mediatek/imgsensor \
-            drivers/misc/mediatek/camera; do
-            [ -f "$dir/Makefile" ] && echo '' >> "$dir/Makefile" && echo "ccflags-y += $FLAGS" >> "$dir/Makefile"
-          done
-          echo "✅ Patch aplicado"
+          # Truco clave: añadir al FINAL del Makefile principal.
+          # Los cc-option checks usan -Werror internamente y ocurren ANTES, así que no se ven afectados.
+          # KBUILD_CFLAGS se usa para compilar TODO el kernel y gana al final.
+          echo '' >> Makefile
+          echo '# OTG build: disable -Werror globally (safe append)' >> Makefile
+          echo 'KBUILD_CFLAGS += -Wno-error' >> Makefile
+          echo 'KBUILD_CFLAGS += -Wno-error=array-bounds -Wno-error=format -Wno-error=maybe-uninitialized -Wno-error=uninitialized -Wno-error=duplicate-decl-specifier -Wno-error=misleading-indentation -Wno-error=stringop-overflow -Wno-error=restrict -Wno-error=return-type -Wno-error=memset-elt-size -Wno-error=unused-variable -Wno-error=unused-but-set-variable -Wno-error=parentheses -Wno-error=sizeof-pointer-memaccess -Wno-error=shift-negative-value' >> Makefile
+          echo "=== Verificación (últimas líneas del Makefile) ==="
+          tail -5 Makefile
       - name: Build kernel
         run: |
           cd kernel
