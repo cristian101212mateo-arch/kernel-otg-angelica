@@ -59,6 +59,13 @@ jobs:
           echo 'KBUILD_CFLAGS += -Wno-error=array-bounds -Wno-error=format -Wno-error=maybe-uninitialized -Wno-error=uninitialized -Wno-error=duplicate-decl-specifier -Wno-error=misleading-indentation -Wno-error=stringop-overflow -Wno-error=restrict -Wno-error=return-type -Wno-error=memset-elt-size -Wno-error=unused-variable -Wno-error=unused-but-set-variable -Wno-error=parentheses -Wno-error=sizeof-pointer-memaccess -Wno-error=shift-negative-value' >> Makefile
           echo "=== Verificación (últimas líneas del Makefile) ==="
           tail -5 Makefile
+      - name: Fix mtk_switch_charging switch-unreachable
+        run: |
+          cd kernel
+          F=drivers/power/supply/mediatek/charger/mtk_switch_charging.c
+          grep -n chr_err $F | head -3
+          grep -n chr_err ../drivers/power/supply/mediatek/charger/mtk_charger_intf.h | head -3
+
       - name: Build kernel
         run: |
           cd kernel
