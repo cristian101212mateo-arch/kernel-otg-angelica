@@ -16,7 +16,7 @@ jobs:
           apt-get install -y bc bison build-essential flex libssl-dev libelf-dev git zip python3 python-is-python3 cpio kmod rsync wget curl gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - name: Clone kernel source
-        run: git clone --depth=1 --branch halium-10.0 https://github.com/droidian-mt6765/kernel-xiaomi-mt6765.git kernel
+        run: git clone --depth=1 --branch halium-10.0 https://github.com/cristian101212mateo-arch/kernel-xiaomi-mt6765-otg.git kernel
 
       - name: Add usb0 label and DTC flag
         run: |
