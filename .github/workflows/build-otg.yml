@@ -59,35 +59,18 @@ jobs:
           echo 'KBUILD_CFLAGS += -Wno-error=array-bounds -Wno-error=format -Wno-error=maybe-uninitialized -Wno-error=uninitialized -Wno-error=duplicate-decl-specifier -Wno-error=misleading-indentation -Wno-error=stringop-overflow -Wno-error=restrict -Wno-error=return-type -Wno-error=memset-elt-size -Wno-error=unused-variable -Wno-error=unused-but-set-variable -Wno-error=parentheses -Wno-error=sizeof-pointer-memaccess -Wno-error=shift-negative-value' >> Makefile
           echo "=== Verificación (últimas líneas del Makefile) ==="
           tail -5 Makefile
-      - name: Fix mtk_charger_intf.h switch-unreachable (python)
+      - name: Patch charger Makefile with -Wno-error
         run: |
           cd kernel
-          python3 - <<'PYEOF_INNER'
-          p = 'drivers/power/supply/mediatek/charger/mtk_charger_intf.h'
-          with open(p) as f:
-              lines = f.readlines()
-          # Mostrar linea 53 antes
-          print('ANTES:', repr(lines[52]))
-          # Reemplazar la comparacion por una version que GCC no marca como unreachable
-          lines[52] = lines[52].replace(
-              'if (chr_get_debug_level() >= CHRLOG_ERROR_LEVEL)',
-              'if ((chr_get_debug_level() | 0) >= CHRLOG_ERROR_LEVEL)'
-          )
-          print('DESPUES:', repr(lines[52]))
-          with open(p, 'w') as f:
-              f.writelines(lines)
-          PYEOF_INNER
-
-      - name: Fix mtk_charger_intf.h switch-unreachable
-        run: |
-          cd kernel
-          F=drivers/power/supply/mediatek/charger/mtk_charger_intf.h
-          echo "=== Linea 53 antes ==="
-          sed -n '50,56p' $F
-          sed -i '53s/if (chr_get_debug_level()/if (chr_get_debug_level() __attribute__((unused)) ==/' $F
-          sed -i 's/if (chr_get_debug_level() >= CHRLOG_ERROR_LEVEL)/if (0 \&\& chr_get_debug_level() >= CHRLOG_ERROR_LEVEL)/' $F
-          echo "=== Linea 53 despues ==="
-          sed -n '50,56p' $F
+          M=drivers/power/supply/mediatek/charger/Makefile
+          echo "=== Antes ==="
+          cat $M
+          echo '' >> $M
+          echo 'ccflags-y += -Wno-error -Wno-error=switch-unreachable -Wno-error=unreachable-code -Wno-error=array-bounds -Wno-error=format -Wno-error=maybe-uninitialized -Wno-error=uninitialized -Wno-error=misleading-indentation -Wno-error=stringop-overflow' >> $M
+          echo '' >> $M
+          echo 'subdir-ccflags-y += -Wno-error -Wno-error=switch-unreachable -Wno-error=unreachable-code' >> $M
+          echo "=== Después ==="
+          cat $M
 
       - name: Build kernel
         run: |
